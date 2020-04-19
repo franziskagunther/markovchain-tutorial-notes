@@ -32,3 +32,90 @@ for ( day in 1:30 ) { # simulate for 30 days
   weather_sequence[day] = state # store the sampled state
 } 
 print(weather_sequence)
+
+# EX: Monopoly
+
+num_games <- 1000 # number of games to play
+num_turns <- 1000 # number of turns to take 
+
+# num_players <- 4
+
+current_board_position <- 0 # start on the GO space
+go_to_jail_position = 30 # the go to jail space
+jail_position = 10 # jail space
+properties_that_can_be_bought <- data.frame(pos=c(1, 3, 5, 6, 8, 9, 11, 12, 13, 14, 15, 16, 18, 19, 21, 23, 24, 25, 26, 27, 28, 29, 31, 32, 34, 35, 37, 39), value=c(60, 60, 200, 100, 100, 120, 140, 150, 140, 160, 200, 180, 180, 200, 220, 220, 240, 200, 260, 260, 150, 280, 300, 300, 320, 200, 350, 400))
+
+time_to_buy_all_properties <- rep(0, num_games) # vector to store number of turns to buy all properties
+account <- 1500
+
+# simulate multiple games 
+for ( game in 1:num_games ) {
+  
+  # move.size <- rep(0, num_turns)
+  positions_visited <- rep(0, num_turns) # 1000 zeros
+  positions_purchased <- rep(0, 40) # repeat zero 40 times
+  properties_bought <- rep(0, num_turns) # 1000 zeros
+  
+  # use a for loop to simulate a number of turns
+  for ( turn in 1:num_turns ) {
+    
+    # roll two dice
+    die.values = sample(c(1:6), 2, replace=TRUE)
+    
+    # move player position
+    
+    # number of positions to move
+    plus.move = sum(die.values)
+    
+    # compute new board position
+    new_board_position = current_board_position + plus.move
+    
+    cat(plus.move, "number on dies\n")
+    
+    # if Go is passed, increase account by 200
+    if ((current_board_position %% 40 >= 28) && (new_board_position %% 40 <= 11)) {
+      cat(current_board_position, " current position\n")
+      cat(new_board_position %% 40, " position obtained\n")
+      account <- account + 200
+    }
+    
+    # if land on GO TO JAIL square, then go backwards to the JAIL square
+    if ( new_board_position == go_to_jail_position ) {
+      new_board_position = jail_position
+    }    
+    
+    # update board position (this corrects for the fact the board is circular)
+    current_board_position = ( new_board_position %% 40 ) 
+    
+    # if we can on a square that can be purchased and which has not been purchased (note R uses 1-indexing for arrays)
+    if ( positions_purchased[current_board_position+1] == 0 ) {
+      if ( current_board_position %in% properties_that_can_be_bought$pos ) {
+        prop_index <- which(properties_that_can_be_bought$pos %in% current_board_position)
+        cat("Balance before: ", account, "\n")
+        if(account >= properties_that_can_be_bought$value[prop_index]) { # buy if we have enough money
+          account <- account - properties_that_can_be_bought$value[prop_index]
+          positions_purchased[current_board_position+1] = 1
+        } 
+        cat("Balance after: ", account, "\n")
+        cat("Property value: ", properties_that_can_be_bought$value[prop_index], "\n")
+      }
+    }        
+    
+    # store position visited
+    positions_visited[turn] <- current_board_position
+    
+    # store number of properties bought
+    properties_bought[turn] <- sum(positions_purchased)
+    
+    # check if all properties are gone
+    if ( properties_bought[turn] == length(properties_that_can_be_bought$pos) ) {
+      time_to_buy_all_properties[game] = turn
+      break
+    }
+    
+    
+  }
+  
+}
+
+hist(time_to_buy_all_properties, breaks=20) 
